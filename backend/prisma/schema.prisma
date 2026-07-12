@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  type      String
+  status    String   @default("healthy")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  telemetry Telemetry[]
+  alerts    Alert[]
+
+  @@map("devices")
+}
+
+model Telemetry {
+  id        String   @id @default(uuid())
+  deviceId  String   @map("device_id")
+  metric    String
+  value     Float
+  timestamp DateTime @default(now())
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, metric, timestamp])
+  @@index([deviceId, timestamp])
+  @@map("telemetry")
+}
+
+model Alert {
+  id           String    @id @default(uuid())
+  deviceId     String    @map("device_id")
+  severity     String
+  title        String
+  description  String
+  acknowledged Boolean   @default(false)
+  resolved     Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  resolvedAt   DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, resolved, severity])
+  @@index([resolved, severity, createdAt])
+  @@map("alerts")
+}
